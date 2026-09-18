@@ -20,11 +20,11 @@ This is a hardened fork of [ykarapazar/word-mcp-live](https://github.com/ykarapa
 Requires Windows, Microsoft Word, and [uv](https://docs.astral.sh/uv/).
 
 ```
-uv tool install git+https://github.com/HurleySk/word-mcp
+uv tool install --compile-bytecode git+https://github.com/HurleySk/word-mcp
 claude mcp add --scope user word-mcp -- word-mcp
 ```
 
-`uv tool install` builds an isolated environment once, so launching the server resolves nothing.
+`uv tool install` builds an isolated environment once, so launching the server resolves nothing. `--compile-bytecode` keeps the first launch under 3 seconds instead of about 25.
 
 To update: `uv tool upgrade word-mcp`.
 
