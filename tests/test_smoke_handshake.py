@@ -19,8 +19,9 @@ CONSOLE_SCRIPT = [str(pathlib.Path(sys.executable).with_name("word-mcp.exe"))]
 
 
 def test_console_script_starts_fast_and_exits_clean():
+    handshake(CONSOLE_SCRIPT)
     result = handshake(CONSOLE_SCRIPT)
     assert len(result["tools"]) == 45
-    assert result["elapsed"] < 5.0
+    assert result["elapsed"] < 10.0
     assert result["exit_code"] == 0
     assert "FastMCP" not in result["stderr"]

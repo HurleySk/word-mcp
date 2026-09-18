@@ -266,7 +266,10 @@ def word_live_get_text(filename: str = None) -> str:
         # Large document safety cap: return first 3 pages instead of all
         if total_paras > 200:
             total_pages = doc.ComputeStatistics(2)  # wdStatisticPages
-            result = json.loads(word_live_get_page_text.sync(filename, 1, 3))
+            page_text = word_live_get_page_text.sync(filename, 1, 3)
+            result = json.loads(page_text)
+            if "error" in result:
+                return page_text
             result["truncated"] = True
             result["total_paragraphs"] = total_paras
             result["total_pages"] = total_pages

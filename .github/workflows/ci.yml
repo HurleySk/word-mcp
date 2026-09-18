@@ -12,5 +12,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv lock --check
-      - run: uv sync
+      - run: uv sync --locked --compile-bytecode
       - run: uv run pytest -v

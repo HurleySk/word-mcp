@@ -92,3 +92,28 @@ async def test_mutating_tool_is_never_retried(connector):
     assert result["code"] == "busy"
     assert result["retryable"] is False
     assert "undo" in result["hint"].lower()
+
+
+async def test_mutating_timeout_is_not_retryable(connector):
+    release = threading.Event()
+
+    @live_tool(mutates=True, timeout=0.2)
+    def slow():
+        release.wait(5)
+        return "{}"
+
+    result = json.loads(await slow())
+    release.set()
+    assert result["code"] == "timeout"
+    assert result["retryable"] is False
+    assert "undo" in result["hint"].lower()
+
+
+async def test_malformed_timeout_env_falls_back(connector, monkeypatch):
+    monkeypatch.setenv("WORD_MCP_TIMEOUT", "soon")
+
+    @live_tool(mutates=False)
+    def quick():
+        return "{}"
+
+    assert await quick() == "{}"

@@ -1,6 +1,7 @@
 import asyncio
 import concurrent.futures
 import json
+import logging
 import os
 import queue
 import threading
@@ -10,6 +11,7 @@ from contextlib import contextmanager
 
 from word_mcp.errors import WordError, classify
 
+logger = logging.getLogger(__name__)
 _local = threading.local()
 _lock = threading.Lock()
 _worker = None
@@ -119,7 +121,12 @@ class ComWorker:
     def submit(self, fn):
         future = concurrent.futures.Future()
         self._queue.put((fn, future))
+        if self.poisoned:
+            self.poison()
         return future
+
+    def alive(self):
+        return not self.poisoned and self._thread.is_alive()
 
     def poison(self):
         self.poisoned = True
@@ -132,10 +139,11 @@ class ComWorker:
                 future.set_exception(_timeout_error("Word stopped responding"))
 
     def _run(self):
-        self._connector.thread_init()
-        session = WordSession(self._connector)
-        _local.session = session
+        session = None
         try:
+            self._connector.thread_init()
+            session = WordSession(self._connector)
+            _local.session = session
             while not self.poisoned:
                 try:
                     fn, future = self._queue.get(timeout=0.1)
@@ -149,12 +157,27 @@ class ComWorker:
                     future.set_result(fn(session))
                 except BaseException as exc:
                     future.set_exception(exc)
+        except Exception:
+            logger.exception("word-com worker stopped")
         finally:
+            self.poison()
             _local.session = None
-            self._connector.thread_exit()
+            if session is not None:
+                session.drop()
+            try:
+                self._connector.thread_exit()
+            except Exception:
+                pass
 
 
-def _timeout_error(message):
+def _timeout_error(message, *, applied=False):
+    if applied:
+        return WordError(
+            "timeout",
+            message,
+            retryable=False,
+            hint="The edit may still be applied once Word responds. Check the document, or call word_live_undo, before retrying.",
+        )
     return WordError(
         "timeout",
         message,
@@ -185,22 +208,24 @@ def reset():
 def _get_worker():
     global _worker
     with _lock:
-        if _worker is None or _worker.poisoned:
+        if _worker is None or not _worker.alive():
             factory = _connector_factory or Win32Connector
             _worker = ComWorker(factory())
         return _worker
 
 
-async def run_com(fn, *, timeout=60.0):
+async def run_com(fn, *, timeout=60.0, mutates=False):
     worker = _get_worker()
     future = worker.submit(fn)
     try:
         return await asyncio.wait_for(asyncio.wrap_future(future), timeout)
     except asyncio.TimeoutError:
-        still_queued = future.cancel()
-        if not still_queued:
-            worker.poison()
-        raise _timeout_error(f"Word did not respond within {timeout:g} seconds") from None
+        if future.cancel():
+            raise _timeout_error(f"Word was still busy with an earlier call after {timeout:g} seconds") from None
+        if future.done():
+            return future.result()
+        worker.poison()
+        raise _timeout_error(f"Word did not respond within {timeout:g} seconds", applied=mutates) from None
 
 
 def current_session():

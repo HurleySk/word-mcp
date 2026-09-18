@@ -9,7 +9,11 @@ READ_ATTEMPTS = 3
 
 
 def _default_timeout():
-    return float(os.environ.get("WORD_MCP_TIMEOUT", "60"))
+    try:
+        value = float(os.environ.get("WORD_MCP_TIMEOUT", "60"))
+    except ValueError:
+        return 60.0
+    return value if value > 0 else 60.0
 
 
 def _call(session, body, args, kwargs):
@@ -50,6 +54,7 @@ def live_tool(*, mutates, timeout=None):
                 return await run_com(
                     lambda session: _invoke(session, body, args, kwargs, mutates),
                     timeout=limit,
+                    mutates=mutates,
                 )
             except Exception as exc:
                 return error_json(exc)

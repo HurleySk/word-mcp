@@ -104,7 +104,7 @@ async def run_com(fn: Callable[[WordSession], T], *, timeout: float = 60.0) -> T
 
 `fn` runs on the COM thread and receives a `WordSession` exposing `app` and `document(filename)`. COM objects never leave the COM thread: `fn` returns plain Python data.
 
-Calls are serialised through a queue. On timeout the awaiting coroutine gets `WordError(code="timeout", retryable=True)`. The worker is marked poisoned, a replacement thread is started for later calls, and the stuck thread is abandoned as a daemon. The cached app handle is dropped.
+Calls are serialised through a queue. On timeout the awaiting coroutine gets `WordError(code="timeout")`. It is `retryable=True` for a read-only tool and for a call that never left the queue. A mutating tool that timed out while running gets `retryable=False` with an undo hint, because the stuck thread can still finish the edit once Word responds. A result that lands as the timeout fires is returned, not discarded. The worker is marked poisoned, a replacement thread is started for later calls, and the stuck thread is abandoned as a daemon. The cached app handle is dropped.
 
 Attach:
 
@@ -116,7 +116,7 @@ Attach:
 
 `Dispatch("Word.Application")` is removed. None of the 45 tools opens a file, so nothing in the server starts Word.
 
-The default per-call timeout is 60 s and can be changed with the `WORD_MCP_TIMEOUT` environment variable. When a worker is poisoned, calls still queued on it fail at once with `timeout`.
+The default per-call timeout is 60 s and can be changed with the `WORD_MCP_TIMEOUT` environment variable. When a worker is poisoned, calls still queued on it fail at once with `timeout`. A worker whose thread has died is replaced on the next call.
 
 `find_document` and `undo_record` move here unchanged in behaviour.
 

@@ -125,3 +125,34 @@ async def test_error_json_drops_the_app_on_disconnect(connector):
     assert json.loads(text)["code"] == "disconnected"
     assert cached is None
     assert same is True
+
+
+async def test_dead_worker_thread_is_replaced():
+    class CrashingConnector(FakeConnector):
+        def pump(self):
+            raise RuntimeError("pump failed")
+
+    crashing = CrashingConnector()
+    healthy = FakeConnector()
+    connectors = [crashing, healthy]
+    com_runtime.configure(lambda: connectors.pop(0), sleep=lambda seconds: None)
+    try:
+        first = com_runtime._get_worker()
+        first._thread.join(2)
+        assert not first._thread.is_alive()
+        assert first.poisoned
+        result = await com_runtime.run_com(lambda session: session.app.Documents.Count, timeout=2)
+        assert result == 1
+        assert healthy.attach_count == 1
+    finally:
+        com_runtime.reset()
+
+
+async def test_result_that_lands_at_the_timeout_is_kept(connector, monkeypatch):
+    async def late_timeout(awaitable, timeout):
+        await awaitable
+        raise asyncio.TimeoutError
+
+    monkeypatch.setattr(com_runtime.asyncio, "wait_for", late_timeout)
+    assert await com_runtime.run_com(lambda session: 42, timeout=1) == 42
+    assert not com_runtime._get_worker().poisoned

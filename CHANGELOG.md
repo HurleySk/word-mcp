@@ -15,6 +15,8 @@ Forked from word-mcp-live 1.6.2.
 - Added per-call timeouts, a 10-second readiness poll for a busy Word, and worker replacement after a hang.
 - Removed the `Dispatch` fallback that could start a second Word.
 - Attach falls back to Word's window handle, so a Word that has not yet registered in the Running Object Table is still found.
+- A mutating tool that times out while running reports `retryable: false` with an undo hint, so a client does not apply the edit twice.
+- A worker thread that dies is replaced on the next call, and a result that lands as the timeout fires is kept.
 - Errors are structured JSON with `code`, `retryable` and `hint`.
 - Pinned `fastmcp>=4.0.5,<5` and committed a current `uv.lock`.
 - Fixed exit code 1 on normal shutdown.
