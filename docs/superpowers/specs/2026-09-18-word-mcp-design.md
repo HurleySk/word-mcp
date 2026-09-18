@@ -111,7 +111,8 @@ Attach:
 1. If a cached app exists, validate with one cheap property read. A disconnect HRESULT (`RPC_E_DISCONNECTED`, `RPC_S_SERVER_UNAVAILABLE`, `CO_E_OBJNOTCONNECTED`) drops the cache.
 2. `GetActiveObject("Word.Application")`. If it has documents, use it.
 3. ROT scan, logic carried over from `_find_word_with_docs`.
-4. Otherwise raise `WordError(code="word_not_running")`.
+4. Window scan: `AccessibleObjectFromWindow` on a Word document pane (`_WwG`). Word registers in the ROT only after it loses focus, so steps 2 and 3 can miss a running Word.
+5. Otherwise raise `WordError(code="word_not_running")`.
 
 `Dispatch("Word.Application")` is removed. None of the 45 tools opens a file, so nothing in the server starts Word.
 

@@ -14,6 +14,7 @@ Forked from word-mcp-live 1.6.2.
 - All COM calls run on a dedicated STA worker thread with a cached Word connection.
 - Added per-call timeouts, a 10-second readiness poll for a busy Word, and worker replacement after a hang.
 - Removed the `Dispatch` fallback that could start a second Word.
+- Attach falls back to Word's window handle, so a Word that has not yet registered in the Running Object Table is still found.
 - Errors are structured JSON with `code`, `retryable` and `hint`.
 - Pinned `fastmcp>=4.0.5,<5` and committed a current `uv.lock`.
 - Fixed exit code 1 on normal shutdown.
