@@ -1,6 +1,8 @@
 """Screen capture tool for Microsoft Word documents via COM + Win32 API."""
 
 import json
+from word_mcp.com_runtime import error_json
+from word_mcp.live_tool import live_tool
 import os
 import sys
 
@@ -63,7 +65,8 @@ def _capture_window_to_png(hwnd: int) -> bytes:
     return buf.getvalue()
 
 
-async def word_screen_capture(filename: str = None, output_path: str = None) -> str:
+@live_tool(mutates=False)
+def word_screen_capture(filename: str = None, output_path: str = None) -> str:
     """Capture a screenshot of a Word document window.
 
     Args:
@@ -77,7 +80,7 @@ async def word_screen_capture(filename: str = None, output_path: str = None) -> 
         return json.dumps({"error": "Screen capture is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document
+        from word_mcp.com_runtime import get_word_app, find_document
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -118,4 +121,4 @@ async def word_screen_capture(filename: str = None, output_path: str = None) -> 
         )
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)

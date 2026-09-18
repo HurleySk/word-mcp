@@ -5,6 +5,8 @@ providing real-time editing capabilities with optional tracked changes.
 """
 
 import json
+from word_mcp.com_runtime import error_json
+from word_mcp.live_tool import live_tool
 import os
 import re
 import sys
@@ -20,7 +22,8 @@ WD_STORY = 6
 _INSERT_CHUNK_SIZE = 30000
 
 
-async def word_live_insert_image(
+@live_tool(mutates=True)
+def word_live_insert_image(
     filename: str = None,
     image_path: str = "",
     paragraph_index: int = None,
@@ -73,7 +76,7 @@ async def word_live_insert_image(
         return json.dumps({"error": f"Image file not found: {abs_path}"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -252,10 +255,11 @@ async def word_live_insert_image(
         }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_insert_cross_reference(
+@live_tool(mutates=True)
+def word_live_insert_cross_reference(
     filename: str = None,
     ref_type: str = "heading",
     ref_item: int = 1,
@@ -320,7 +324,7 @@ async def word_live_insert_cross_reference(
         })
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -366,10 +370,11 @@ async def word_live_insert_cross_reference(
         }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_list_cross_reference_items(
+@live_tool(mutates=False)
+def word_live_list_cross_reference_items(
     filename: str = None,
     ref_type: str = "heading",
 ) -> str:
@@ -397,7 +402,7 @@ async def word_live_list_cross_reference_items(
         })
 
     try:
-        from word_mcp.word_com import get_word_app, find_document
+        from word_mcp.com_runtime import get_word_app, find_document
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -472,10 +477,11 @@ async def word_live_list_cross_reference_items(
         }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_insert_equation(
+@live_tool(mutates=True)
+def word_live_insert_equation(
     filename: str = None,
     equation: str = "",
     paragraph_index: int = None,
@@ -583,7 +589,7 @@ async def word_live_insert_equation(
         return json.dumps({"error": "Live editing is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -648,4 +654,4 @@ async def word_live_insert_equation(
         }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)

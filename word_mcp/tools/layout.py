@@ -6,6 +6,8 @@ management for files that are open (and locked) in Word.
 """
 
 import json
+from word_mcp.com_runtime import error_json
+from word_mcp.live_tool import live_tool
 import sys
 
 
@@ -13,7 +15,8 @@ import sys
 _PTS_PER_INCH = 72.0
 
 
-async def word_live_set_page_layout(
+@live_tool(mutates=True)
+def word_live_set_page_layout(
     filename: str = None,
     section_index: int = 1,
     orientation: str = None,
@@ -44,7 +47,7 @@ async def word_live_set_page_layout(
         return json.dumps({"error": "Live layout tools are only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -94,10 +97,11 @@ async def word_live_set_page_layout(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_add_header_footer(
+@live_tool(mutates=True)
+def word_live_add_header_footer(
     filename: str = None,
     section_index: int = 1,
     header_text: str = None,
@@ -122,7 +126,7 @@ async def word_live_add_header_footer(
         return json.dumps({"error": "Live layout tools are only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -164,10 +168,11 @@ async def word_live_add_header_footer(
         }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_add_page_numbers(
+@live_tool(mutates=True)
+def word_live_add_page_numbers(
     filename: str = None,
     section_index: int = 1,
     position: str = "footer",
@@ -194,7 +199,7 @@ async def word_live_add_page_numbers(
         return json.dumps({"error": "Live layout tools are only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -259,10 +264,11 @@ async def word_live_add_page_numbers(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_add_section_break(
+@live_tool(mutates=True)
+def word_live_add_section_break(
     filename: str = None,
     break_type: str = "new_page",
 ) -> str:
@@ -279,7 +285,7 @@ async def word_live_add_section_break(
         return json.dumps({"error": "Live layout tools are only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -311,10 +317,11 @@ async def word_live_add_section_break(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_set_paragraph_spacing(
+@live_tool(mutates=True)
+def word_live_set_paragraph_spacing(
     filename: str = None,
     paragraph_index: int = None,
     start_paragraph: int = None,
@@ -353,7 +360,7 @@ async def word_live_set_paragraph_spacing(
         return json.dumps({"error": "Live layout tools are only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -411,10 +418,11 @@ async def word_live_set_paragraph_spacing(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_add_bookmark(
+@live_tool(mutates=True)
+def word_live_add_bookmark(
     filename: str = None,
     paragraph_index: int = 1,
     bookmark_name: str = "",
@@ -436,7 +444,7 @@ async def word_live_add_bookmark(
         return json.dumps({"error": "bookmark_name is required"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -458,10 +466,11 @@ async def word_live_add_bookmark(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_add_watermark(
+@live_tool(mutates=True)
+def word_live_add_watermark(
     filename: str = None,
     text: str = "TASLAK",
     font_size: int = 72,
@@ -486,7 +495,7 @@ async def word_live_add_watermark(
         return json.dumps({"error": "Live layout tools are only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -542,4 +551,4 @@ async def word_live_add_watermark(
         }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)

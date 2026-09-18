@@ -5,6 +5,8 @@ providing real-time editing capabilities with optional tracked changes.
 """
 
 import json
+from word_mcp.com_runtime import error_json
+from word_mcp.live_tool import live_tool
 import os
 import re
 import sys
@@ -20,7 +22,8 @@ WD_STORY = 6
 _INSERT_CHUNK_SIZE = 30000
 
 
-async def word_live_insert_text(
+@live_tool(mutates=True)
+def word_live_insert_text(
     filename: str = None,
     text: str = "",
     position: str = "end",
@@ -45,7 +48,7 @@ async def word_live_insert_text(
         return json.dumps({"error": "Live editing is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -123,10 +126,11 @@ async def word_live_insert_text(
         return json.dumps(result)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_format_text(
+@live_tool(mutates=True)
+def word_live_format_text(
     filename: str = None,
     start: int = None,
     end: int = None,
@@ -188,7 +192,7 @@ async def word_live_format_text(
         return json.dumps({"error": "Live editing is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -315,10 +319,11 @@ async def word_live_format_text(
         )
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_apply_list(
+@live_tool(mutates=True)
+def word_live_apply_list(
     filename: str = None,
     start_paragraph: int = None,
     end_paragraph: int = None,
@@ -375,7 +380,7 @@ async def word_live_apply_list(
         end_paragraph = start_paragraph
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -482,10 +487,11 @@ async def word_live_apply_list(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_setup_heading_numbering(
+@live_tool(mutates=True)
+def word_live_setup_heading_numbering(
     filename: str = None,
     h1_paragraphs: list = None,
     h2_paragraphs: list = None,
@@ -552,7 +558,7 @@ async def word_live_setup_heading_numbering(
         return json.dumps({"error": "Provide h1_paragraphs and/or h2_paragraphs"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -857,10 +863,11 @@ async def word_live_setup_heading_numbering(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_replace_text(
+@live_tool(mutates=True)
+def word_live_replace_text(
     filename: str = None,
     find_text: str = "",
     replace_text: str = "",
@@ -923,7 +930,7 @@ async def word_live_replace_text(
         })
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -988,10 +995,11 @@ async def word_live_replace_text(
         }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_insert_paragraphs(
+@live_tool(mutates=True)
+def word_live_insert_paragraphs(
     filename: str = None,
     paragraphs: list = None,
     target_text: str = None,
@@ -1033,7 +1041,7 @@ async def word_live_insert_paragraphs(
         return json.dumps({"error": f"position must be 'before' or 'after', got '{position}'"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -1112,10 +1120,11 @@ async def word_live_insert_paragraphs(
         }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_delete_text(
+@live_tool(mutates=True)
+def word_live_delete_text(
     filename: str = None,
     start: int = None,
     end: int = None,
@@ -1141,7 +1150,7 @@ async def word_live_delete_text(
         )
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -1186,10 +1195,11 @@ async def word_live_delete_text(
         )
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_undo(
+@live_tool(mutates=True)
+def word_live_undo(
     filename: str = None,
     times: int = 1,
 ) -> str:
@@ -1213,7 +1223,7 @@ async def word_live_undo(
         return json.dumps({"error": "times must be >= 1"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document
+        from word_mcp.com_runtime import get_word_app, find_document
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -1228,10 +1238,11 @@ async def word_live_undo(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_save(
+@live_tool(mutates=True)
+def word_live_save(
     filename: str = None,
     save_as: str = None,
 ) -> str:
@@ -1250,7 +1261,7 @@ async def word_live_save(
         return json.dumps({"error": "Live editing is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document
+        from word_mcp.com_runtime import get_word_app, find_document
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -1283,10 +1294,11 @@ async def word_live_save(
             }, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_toggle_track_changes(
+@live_tool(mutates=True)
+def word_live_toggle_track_changes(
     filename: str = None,
     enable: bool = None,
 ) -> str:
@@ -1305,7 +1317,7 @@ async def word_live_toggle_track_changes(
         return json.dumps({"error": "Live editing is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document
+        from word_mcp.com_runtime import get_word_app, find_document
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -1324,4 +1336,4 @@ async def word_live_toggle_track_changes(
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)

@@ -5,6 +5,8 @@ providing real-time editing capabilities with optional tracked changes.
 """
 
 import json
+from word_mcp.com_runtime import error_json
+from word_mcp.live_tool import live_tool
 import os
 import re
 import sys
@@ -20,7 +22,8 @@ WD_STORY = 6
 _INSERT_CHUNK_SIZE = 30000
 
 
-async def word_live_add_table(
+@live_tool(mutates=True)
+def word_live_add_table(
     filename: str = None,
     rows: int = 2,
     cols: int = 2,
@@ -51,7 +54,7 @@ async def word_live_add_table(
         return json.dumps({"error": "Live editing is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -161,10 +164,11 @@ async def word_live_add_table(
         )
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_format_table(
+@live_tool(mutates=True)
+def word_live_format_table(
     filename: str = None,
     table_index: int = -1,
     border_style: str = None,
@@ -204,7 +208,7 @@ async def word_live_format_table(
         return json.dumps({"error": "Live editing is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
 
         app = get_word_app()
         doc = find_document(app, filename)
@@ -338,10 +342,11 @@ async def word_live_format_table(
         )
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
 
 
-async def word_live_modify_table(
+@live_tool(mutates=True)
+def word_live_modify_table(
     filename: str = None,
     table_index: int = 1,
     operation: str = "get_info",
@@ -398,7 +403,7 @@ async def word_live_modify_table(
         return json.dumps({"error": "Live editing is only available on Windows"})
 
     try:
-        from word_mcp.word_com import get_word_app, find_document, undo_record
+        from word_mcp.com_runtime import get_word_app, find_document, undo_record
         from word_mcp import table_com
 
         app = get_word_app()
@@ -510,4 +515,4 @@ async def word_live_modify_table(
         return json.dumps(result, ensure_ascii=False)
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return error_json(e)
