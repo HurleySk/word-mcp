@@ -82,7 +82,7 @@ tests/
 
 ## Dependencies
 
-Runtime: `fastmcp` pinned to one major version with an upper bound, `pywin32>=306`, `Pillow>=10`. The major is chosen by running the existing tool registration against the newest release. If registration needs changes beyond import paths, pin the newest major that works unchanged and record the reason in the README.
+Runtime: `fastmcp>=4.0.5,<5` (the current registration code was verified against 4.0.5), `pywin32>=306`, `Pillow>=10`.
 
 Dev group: `pytest`, `pytest-asyncio`.
 
@@ -92,7 +92,9 @@ Dev group: `pytest`, `pytest-asyncio`.
 
 One daemon thread named `word-com`, started on first use.
 
-Thread start: `pythoncom.CoInitialize()`, then `CoRegisterMessageFilter` with a filter whose `RetryRejectedCall` returns a retry delay for `SERVERCALL_RETRYLATER` until 10 s have elapsed, then cancels. `MessagePending` returns `PENDINGMSG_WAITDEFPROCESS`. The thread pumps messages while idle with `pythoncom.PumpWaitingMessages()` on a short queue-poll interval.
+Thread start: `pythoncom.CoInitialize()`. While idle the thread calls `pythoncom.PumpWaitingMessages()` every 100 ms.
+
+pywin32 does not expose `CoRegisterMessageFilter`, so busy handling is explicit. Before each tool body runs, the worker polls `app.Documents.Count` with backoff for up to 10 s until Word accepts a call. A body that is then rejected mid-way is retried from the top only when the tool is read-only. A mutating tool is never re-run: it returns `busy` with a hint that the edit may be partial and can be undone.
 
 Public API:
 
@@ -111,39 +113,42 @@ Attach:
 3. ROT scan, logic carried over from `_find_word_with_docs`.
 4. Otherwise raise `WordError(code="word_not_running")`.
 
-`Dispatch("Word.Application")` is removed from the attach path. A tool whose purpose is to open a file may call `session.launch()`, which is the only place a new Word instance is created.
+`Dispatch("Word.Application")` is removed. None of the 45 tools opens a file, so nothing in the server starts Word.
+
+The default per-call timeout is 60 s and can be changed with the `WORD_MCP_TIMEOUT` environment variable. When a worker is poisoned, calls still queued on it fail at once with `timeout`.
 
 `find_document` and `undo_record` move here unchanged in behaviour.
 
 ## errors
 
-`WordError(code, message, retryable, hint)`. Codes: `word_not_running`, `no_document`, `document_not_found`, `busy`, `modal_dialog`, `timeout`, `disconnected`, `invalid_argument`, `com_error`.
+`WordError(code, message, retryable, hint)`. Codes: `word_not_running`, `no_document`, `document_not_found`, `busy`, `modal_dialog`, `timeout`, `disconnected`, `invalid_argument`, `com_error`, `internal`.
 
 `pywintypes.com_error` is mapped by HRESULT: `RPC_E_CALL_REJECTED` and `RPC_E_SERVERCALL_RETRYLATER` to `busy`, the disconnect set to `disconnected`, anything else to `com_error` with the HRESULT and Word's description in `message`.
 
-`busy` that persists past the message filter window is reported as `modal_dialog` with the hint "Word may have a dialog open. Close it and retry."
+`busy` that persists past the 10 s readiness poll is reported as `modal_dialog` with the hint "Word may have a dialog open. Close it and retry."
 
 ## live_tool decorator
 
+Tool schemas, titles and annotations live in the registration wrappers carried over from `main.py`, which call the implementations positionally. The implementations therefore keep their current signatures and bodies.
+
 ```python
-@live_tool(undo="MCP: Insert Text", mutates=True)
-def word_live_insert_text(s: WordSession, doc, *, text, position="end", bookmark=None, track_changes=False) -> dict
+@live_tool(mutates=True)
+def word_live_insert_text(filename=None, text="", position="end", bookmark=None, track_changes=False) -> str
 ```
 
-The decorator produces the `async def` that FastMCP registers, with the original public signature, including `filename`. It:
+`live_tool` turns the synchronous body into an `async def` that runs it through `run_com`. The undecorated body is available as `.sync` for tools that call other tools. Inside a body, `get_word_app()` returns the worker's cached app, so the 45 existing call sites are unchanged.
 
-1. Validates arguments that do not need COM.
-2. Calls `run_com`.
-3. On the COM thread: resolves `doc`, and when `mutates` is true opens the undo record, and when the tool has a `track_changes` parameter saves `doc.TrackRevisions` and `app.UserName`, applies them, and restores them in `finally`.
-4. Serialises the returned dict to JSON with `success: true` and `document`.
-5. Converts any exception to `{"error", "code", "retryable", "hint"}`. It never raises into FastMCP.
+Each body's trailing `except Exception as e: return json.dumps({"error": str(e)})` becomes `return error_json(e)`, which classifies the exception, drops the cached app on a disconnect, and returns `{"error", "code", "retryable", "hint"}`. The decorator applies the same shaping to timeouts and to anything that escapes a body. Nothing raises into FastMCP.
 
-Tool bodies become synchronous functions containing only Word logic. Their docstrings are preserved, since FastMCP publishes them as descriptions.
+The migration is scripted because the patterns are exact: 45 `async def`, 45 identical blanket handlers, and every `if _MAC_AVAILABLE:` block ends at the following `if sys.platform != "win32":` line.
+
+Folding the per-tool undo and track-changes restore code into the decorator is deferred. It already sits in `try/finally`, there are no live-tool tests to catch a regression, and it is not a cause of the failures.
 
 ## Startup
 
 - `pywin32` and `PIL` are imported inside the COM thread and the screen tool, not at module import.
-- FastMCP banner disabled. All logging to stderr at WARNING.
+- FastMCP banner disabled with `show_banner=False`. All logging to stderr at WARNING.
+- Measured: importing the whole current server takes 1.1 s. The 11.5 s warm start is `uv run` re-syncing the project.
 - EOF on stdin exits 0.
 - A non-Windows platform exits 1 at startup with one line on stderr.
 - README install path: `uv tool install git+https://github.com/HurleySk/word-mcp`, then register the `word-mcp` command. Launch performs no dependency resolution.
@@ -153,9 +158,9 @@ Tool bodies become synchronous functions containing only Word logic. Their docst
 `tests/fakes.py` provides a fake `WordSession` and fake COM objects, injected through a `com_runtime` factory hook so unit tests run without Word or pywin32.
 
 - `test_com_runtime.py`: calls are serialised on one thread; timeout returns `timeout` and the next call succeeds on a fresh worker; a disconnect HRESULT triggers one re-attach; no Word gives `word_not_running` and launches nothing; the event loop stays responsive during a slow call.
-- `test_live_tool.py`: track-changes and author state restored when the body raises; undo record closed when the body raises; error JSON shape; the generated signature matches the original.
+- `test_live_tool.py`: the body runs on the COM thread; `.sync` is the raw body; an escaped exception and a timeout both produce the error JSON shape; a read-only tool is retried after a mid-body `busy` and a mutating tool is not.
 - `test_smoke_handshake.py`: spawn the console script, send `initialize` and `tools/list`, assert 45 tools, a response within 5 s, and exit code 0 after stdin closes.
-- `tests/integration/`: opt-in, against real Word with a scratch document. Covers insert, replace, table add, undo, save, and a call made while a modal dialog is open.
+- `tests/integration/`: opt-in, against real Word with a scratch document. Covers list, insert, read back, replace and undo. The modal-dialog case cannot be automated, because showing a dialog blocks the test's own COM call, so it is a manual check in the final task.
 
 CI on `windows-latest`: `uv lock --check`, unit tests, smoke test.
 
@@ -172,6 +177,5 @@ CI on `windows-latest`: `uv lock --check`, unit tests, smoke test.
 
 ## Risks
 
-- FastMCP derives tool schemas from function signatures. The decorator must present the original signature through `functools.wraps` plus an explicit `__signature__`. The smoke test compares schemas against a snapshot taken from the current server before migration.
+- The scripted migration touches 5,000 lines with no behavioural tests. The smoke test compares `tools/list` against a snapshot taken before migration, and every tool module is compiled and imported after each scripted step.
 - An abandoned stuck COM thread holds a reference to Word. This is accepted: the alternative is a dead server.
-- `IMessageFilter` needs a pythoncom server-side object. If registration fails, the runtime logs once and falls back to explicit retry on `RPC_E_CALL_REJECTED` inside `run_com`.
