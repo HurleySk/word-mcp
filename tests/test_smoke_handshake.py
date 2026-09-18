@@ -5,7 +5,7 @@ import sys
 from tests.handshake import handshake, live_tools
 
 SNAPSHOT = pathlib.Path(__file__).parent / "snapshots" / "live_tools.json"
-COMMAND = [sys.executable, "-c", "from word_document_server.main import run_server; run_server()"]
+COMMAND = [sys.executable, "-c", "from word_mcp.server import run; run()"]
 
 
 def test_live_tool_schemas_match_snapshot():

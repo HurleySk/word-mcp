@@ -4,7 +4,6 @@ import json
 import os
 import sys
 
-_MAC_AVAILABLE = sys.platform == 'darwin'
 
 
 def _capture_window_to_png(hwnd: int) -> bytes:
@@ -74,15 +73,11 @@ async def word_screen_capture(filename: str = None, output_path: str = None) -> 
     Returns:
         JSON with path, dimensions, and document name.
     """
-    if _MAC_AVAILABLE:
-        from word_document_server.core.word_mac import mac_screen_capture
-        return mac_screen_capture(filename=filename, output_path=output_path)
-
     if sys.platform != "win32":
         return json.dumps({"error": "Screen capture is only available on Windows"})
 
     try:
-        from word_document_server.core.word_com import get_word_app, find_document
+        from word_mcp.word_com import get_word_app, find_document
 
         app = get_word_app()
         doc = find_document(app, filename)
