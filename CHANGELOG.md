@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.0 (word-mcp fork)
+
+Forked from word-mcp-live 1.6.2.
+
+- Renamed the package to `word_mcp` and the command to `word-mcp`.
+- Removed the python-docx file tools, macOS support, HTTP and SSE transports, and deployment files. 45 tools remain.
+- All COM calls run on a dedicated STA worker thread with a cached Word connection.
+- Added per-call timeouts, a 10-second readiness poll for a busy Word, and worker replacement after a hang.
+- Removed the `Dispatch` fallback that could start a second Word.
+- Errors are structured JSON with `code`, `retryable` and `hint`.
+- Pinned `fastmcp>=4.0.5,<5` and committed a current `uv.lock`.
+- Fixed exit code 1 on normal shutdown.
+
 ## [1.6.0] - 2026-04-29
 
 ### Added

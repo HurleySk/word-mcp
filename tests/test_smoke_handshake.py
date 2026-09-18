@@ -13,3 +13,14 @@ def test_live_tool_schemas_match_snapshot():
     actual = live_tools(handshake(COMMAND)["tools"])
     assert [t["name"] for t in actual] == [t["name"] for t in expected]
     assert actual == expected
+
+
+CONSOLE_SCRIPT = [str(pathlib.Path(sys.executable).with_name("word-mcp.exe"))]
+
+
+def test_console_script_starts_fast_and_exits_clean():
+    result = handshake(CONSOLE_SCRIPT)
+    assert len(result["tools"]) == 45
+    assert result["elapsed"] < 5.0
+    assert result["exit_code"] == 0
+    assert "FastMCP" not in result["stderr"]
