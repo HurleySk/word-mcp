@@ -16,6 +16,7 @@ _worker = None
 _connector_factory = None
 _clock = time.monotonic
 _sleep = time.sleep
+OBJID_NATIVEOM = 0xFFFFFFF0
 
 
 class Win32Connector:
@@ -51,7 +52,7 @@ class Win32Connector:
                 has_docs = False
             if has_docs:
                 return app
-        found = _find_word_with_docs()
+        found = _find_word_with_docs() or _find_word_by_window()
         if found is not None:
             return found
         if app is not None:
@@ -221,6 +222,56 @@ def error_json(exc):
         if err.code == "disconnected":
             session.drop()
     return json.dumps(err.to_dict(), ensure_ascii=False)
+
+
+def _find_word_by_window():
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        import pythoncom
+        import win32com.client
+        import win32gui
+
+        accessible = ctypes.windll.oleacc.AccessibleObjectFromWindow
+        accessible.argtypes = [
+            wintypes.HWND,
+            wintypes.DWORD,
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        accessible.restype = ctypes.c_long
+        iid = (ctypes.c_byte * 16).from_buffer_copy(bytes(pythoncom.IID_IDispatch))
+        panes = []
+
+        def on_child(hwnd, _):
+            if win32gui.GetClassName(hwnd) == "_WwG":
+                panes.append(hwnd)
+            return True
+
+        def on_top(hwnd, _):
+            if win32gui.GetClassName(hwnd) == "OpusApp":
+                try:
+                    win32gui.EnumChildWindows(hwnd, on_child, None)
+                except Exception:
+                    pass
+            return True
+
+        win32gui.EnumWindows(on_top, None)
+        for hwnd in panes:
+            pointer = ctypes.c_void_p()
+            if accessible(hwnd, OBJID_NATIVEOM, iid, ctypes.byref(pointer)) != 0 or not pointer.value:
+                continue
+            try:
+                window = win32com.client.Dispatch(
+                    pythoncom.ObjectFromAddress(pointer.value, pythoncom.IID_IDispatch)
+                )
+                return window.Application
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return None
 
 
 def _find_word_with_docs():
