@@ -21,6 +21,9 @@ word_mcp/
   com_runtime.py    STA worker thread, Word attach, run_com, find_document, undo_record
   live_tool.py      @live_tool decorator and the busy retry policy
   errors.py         WordError and HRESULT classification
+  defaults.py       MCP_AUTHOR and MCP_AUTHOR_INITIALS
+  table_com.py      table helpers used by word_live_modify_table
+  text_safety.py    control-character validation for find and insert text
   tools/            edit, tables, references, read, layout, screen
 ```
 

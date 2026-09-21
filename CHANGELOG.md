@@ -1,13 +1,10 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## 0.1.0 (word-mcp fork)
 
-Forked from word-mcp-live 1.6.2.
+Forked from word-mcp-live 1.6.2. Entries below 0.1.0 are upstream history and mention tools and paths this fork has removed.
 
 - Renamed the package to `word_mcp` and the command to `word-mcp`.
 - Removed the python-docx file tools, macOS support, HTTP and SSE transports, and deployment files. 45 tools remain.

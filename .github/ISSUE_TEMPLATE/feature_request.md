@@ -15,11 +15,6 @@ Describe the scenario where this would be useful. What are you trying to accompl
 **Proposed tool name**
 If this is a new tool, what should it be called? (e.g. `word_live_insert_chart`)
 
-**Mode**
-- [ ] Cross-platform (python-docx) — works on Windows, macOS, Linux
-- [ ] Windows Live (COM) — requires Word open
-- [ ] Both
-
 **Alternatives considered**
 Are there existing tools or workarounds that partially solve this?
 
