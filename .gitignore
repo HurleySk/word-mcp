@@ -24,3 +24,6 @@ mcp-config.json
 # MCP publisher
 mcp-publisher.exe
 *.mcpb
+
+# Superpowers planning docs
+docs/superpowers/
